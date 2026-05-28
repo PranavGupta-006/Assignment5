@@ -1,10 +1,12 @@
 """
 Q1: Game Search Algorithms
-==========================
-Implements: Minimax, Alpha-Beta Pruning, Heuristic Alpha-Beta, Monte-Carlo Tree Search (MCTS)
-Domain: Tic-Tac-Toe (3x3) — clean, fully solvable, ideal for verifying correctness.
+Author: Pranav Gupta
+Roll No: SE24UCSE020
+College: Mahindra University
 
-Author: AI Assignment Solution
+Tech stack: Python, math, random, time, json, sys
+This file covers minimax, alpha-beta pruning, a depth-limited heuristic search,
+and Monte-Carlo Tree Search on Tic-Tac-Toe.
 """
 
 import math
@@ -16,9 +18,7 @@ from copy import deepcopy
 from collections import defaultdict
 
 
-# =============================================================================
-# GAME STATE: Tic-Tac-Toe
-# =============================================================================
+# Game state for Tic-Tac-Toe.
 
 class TicTacToe:
     """
@@ -34,7 +34,7 @@ class TicTacToe:
 
     def __init__(self, board=None, turn=1):
         self.board = board if board is not None else [0] * 9
-        self.turn = turn  # 1 = X's turn, -1 = O's turn
+        self.turn = turn
 
     def legal_moves(self):
         return [i for i, v in enumerate(self.board) if v == 0]
@@ -45,7 +45,7 @@ class TicTacToe:
         return TicTacToe(new_board, -self.turn)
 
     def winner(self):
-        """Returns 1 (X wins), -1 (O wins), or 0 (no winner yet)."""
+        """Return 1 for X, -1 for O, or 0 when the board is undecided."""
         for line in self.WIN_LINES:
             s = sum(self.board[i] for i in line)
             if s == 3:
@@ -58,20 +58,15 @@ class TicTacToe:
         return self.winner() != 0 or not self.legal_moves()
 
     def terminal_value(self):
-        """Returns exact terminal score."""
         w = self.winner()
         if w == 1:
-            return 1      # X wins
+            return 1
         if w == -1:
-            return -1     # O wins
-        return 0          # draw
+            return -1
+        return 0
 
     def heuristic(self):
-        """
-        Heuristic evaluation (used when depth limit reached).
-        Score = (X two-in-a-row count) - (O two-in-a-row count).
-        Scaled to (-0.9, 0.9) so it never overrides terminal values.
-        """
+        """Light board evaluation used when the search hits the depth limit."""
         score = 0
         for line in self.WIN_LINES:
             vals = [self.board[i] for i in line]
@@ -81,7 +76,7 @@ class TicTacToe:
                 score += 1
             if x_count == 0 and o_count == 2:
                 score -= 1
-        return score * 0.1   # keep within (-0.9, 0.9)
+        return score * 0.1
 
     def display(self):
         sym = {1: 'X', -1: 'O', 0: '.'}
@@ -94,23 +89,15 @@ class TicTacToe:
         return f"TicTacToe(turn={'X' if self.turn==1 else 'O'}, board={self.board})"
 
 
-# =============================================================================
-# 1. MINIMAX (exact, no pruning)
-# =============================================================================
+# Minimax search.
 
 class Minimax:
-    """
-    Classic Minimax search.
-    Explores the ENTIRE game tree — guaranteed optimal but slow for deep games.
-
-    Time complexity: O(b^d)  where b = branching factor, d = depth
-    """
+    """Classic minimax search with full tree expansion."""
 
     def __init__(self):
         self.nodes_visited = 0
 
     def search(self, state: TicTacToe):
-        """Returns (best_value, best_move)."""
         self.nodes_visited = 0
         value, move = self._minimax(state)
         return value, move
@@ -123,7 +110,7 @@ class Minimax:
 
         moves = state.legal_moves()
 
-        if state.turn == 1:          # Maximizer (X)
+        if state.turn == 1:
             best_val = -math.inf
             best_move = None
             for m in moves:
@@ -132,7 +119,7 @@ class Minimax:
                     best_val, best_move = val, m
             return best_val, best_move
 
-        else:                        # Minimizer (O)
+        else:
             best_val = math.inf
             best_move = None
             for m in moves:
@@ -142,21 +129,10 @@ class Minimax:
             return best_val, best_move
 
 
-# =============================================================================
-# 2. ALPHA-BETA PRUNING
-# =============================================================================
+# Alpha-beta pruning.
 
 class AlphaBeta:
-    """
-    Minimax with Alpha-Beta pruning.
-    Prunes branches that cannot affect the final decision.
-
-    Alpha = best value maximizer can guarantee so far (lower bound)
-    Beta  = best value minimizer can guarantee so far (upper bound)
-
-    Prune when alpha >= beta (the opponent would never allow this branch).
-    Best case complexity: O(b^(d/2))
-    """
+    """Minimax with alpha-beta pruning."""
 
     def __init__(self):
         self.nodes_visited = 0
@@ -176,7 +152,7 @@ class AlphaBeta:
 
         moves = state.legal_moves()
 
-        if state.turn == 1:          # Maximizer
+        if state.turn == 1:
             best_val = -math.inf
             best_move = None
             for m in moves:
@@ -184,12 +160,12 @@ class AlphaBeta:
                 if val > best_val:
                     best_val, best_move = val, m
                 alpha = max(alpha, best_val)
-                if alpha >= beta:    # Beta cutoff
+                if alpha >= beta:
                     self.pruned += 1
                     break
             return best_val, best_move
 
-        else:                        # Minimizer
+        else:
             best_val = math.inf
             best_move = None
             for m in moves:
@@ -197,25 +173,16 @@ class AlphaBeta:
                 if val < best_val:
                     best_val, best_move = val, m
                 beta = min(beta, best_val)
-                if alpha >= beta:    # Alpha cutoff
+                if alpha >= beta:
                     self.pruned += 1
                     break
             return best_val, best_move
 
 
-# =============================================================================
-# 3. HEURISTIC ALPHA-BETA (Depth-Limited)
-# =============================================================================
+# Depth-limited alpha-beta search.
 
 class HeuristicAlphaBeta:
-    """
-    Alpha-Beta pruning with a DEPTH LIMIT.
-    When the depth limit is reached, uses a heuristic function
-    instead of exact terminal evaluation.
-
-    This is the foundation of most real game AIs (chess engines, etc.)
-    Depth limit trades accuracy for speed — critical for complex games.
-    """
+    """Alpha-beta search with a fixed depth limit."""
 
     def __init__(self, max_depth=4):
         self.max_depth = max_depth
@@ -236,13 +203,13 @@ class HeuristicAlphaBeta:
         if state.is_terminal():
             return state.terminal_value(), None
 
-        if depth >= self.max_depth:            # Depth cutoff → use heuristic
+        if depth >= self.max_depth:
             self.cutoffs_by_heuristic += 1
             return state.heuristic(), None
 
         moves = state.legal_moves()
 
-        if state.turn == 1:                    # Maximizer
+        if state.turn == 1:
             best_val = -math.inf
             best_move = None
             for m in moves:
@@ -255,7 +222,7 @@ class HeuristicAlphaBeta:
                     break
             return best_val, best_move
 
-        else:                                  # Minimizer
+        else:
             best_val = math.inf
             best_move = None
             for m in moves:
@@ -269,23 +236,10 @@ class HeuristicAlphaBeta:
             return best_val, best_move
 
 
-# =============================================================================
-# 4. MONTE-CARLO TREE SEARCH (MCTS)
-# =============================================================================
+# Monte-Carlo Tree Search.
 
 class MCTSNode:
-    """
-    Node in the MCTS search tree.
-
-    Stores:
-        state       — game state at this node
-        parent      — parent node
-        move        — move that led here
-        children    — child nodes (expanded moves)
-        untried_moves — moves not yet expanded
-        wins        — total wins accumulated (from perspective of player who JUST moved)
-        visits      — total simulations through this node
-    """
+    """Node in the Monte-Carlo tree."""
 
     def __init__(self, state: TicTacToe, parent=None, move=None):
         self.state = state
@@ -303,11 +257,6 @@ class MCTSNode:
         return self.state.is_terminal()
 
     def ucb1(self, c=1.41):
-        """
-        Upper Confidence Bound (UCB1) formula.
-        Balances exploitation (wins/visits) vs exploration (log(parent_visits)/visits).
-        c = exploration constant (√2 ≈ 1.41 is standard)
-        """
         if self.visits == 0:
             return math.inf
         exploitation = self.wins / self.visits
@@ -318,40 +267,22 @@ class MCTSNode:
         return max(self.children, key=lambda n: n.ucb1(c))
 
     def expand(self):
-        """Expand one untried move, return the new child node."""
         move = self.untried_moves.pop(random.randrange(len(self.untried_moves)))
         child = MCTSNode(self.state.make_move(move), parent=self, move=move)
         self.children.append(child)
         return child
 
     def update(self, result):
-        """
-        Backpropagate result.
-        result is from X's perspective: +1 = X win, -1 = O win, 0 = draw.
-        We store wins from the perspective of the player who JUST moved into this node.
-        """
         self.visits += 1
-        # The player who moved INTO this node is -self.state.turn (opposite of current)
         player_who_moved = -self.state.turn
         if result == player_who_moved:
             self.wins += 1.0
         elif result == 0:
-            self.wins += 0.5   # draw counts as half
+            self.wins += 0.5
 
 
 class MCTS:
-    """
-    Monte-Carlo Tree Search.
-    
-    Four phases per iteration:
-    1. SELECTION   — traverse tree using UCB1 until a non-fully-expanded node
-    2. EXPANSION   — expand one child of the selected node
-    3. SIMULATION  — random playout from expanded node to terminal
-    4. BACKPROP    — propagate result up the tree
-
-    No heuristic required — learns purely from random simulations.
-    More iterations → better accuracy. Works for any game without domain knowledge.
-    """
+    """Monte-Carlo Tree Search for Tic-Tac-Toe."""
 
     def __init__(self, iterations=1000):
         self.iterations = iterations
@@ -367,12 +298,10 @@ class MCTS:
             result = self._simulate(node.state)
             self._backpropagate(node, result)
 
-        # Choose move with MOST visits (robust child — less variance than best winrate)
         best = max(self.root.children, key=lambda n: n.visits)
         return best.wins / best.visits if best.visits else 0, best.move
 
     def _select(self, node: MCTSNode) -> MCTSNode:
-        """Traverse tree with UCB1 until we find a node to expand."""
         while not node.is_terminal():
             if not node.is_fully_expanded():
                 return node
@@ -380,47 +309,37 @@ class MCTS:
         return node
 
     def _simulate(self, state: TicTacToe) -> int:
-        """Random rollout to terminal state. Returns winner (1, -1, or 0)."""
         while not state.is_terminal():
             moves = state.legal_moves()
             state = state.make_move(random.choice(moves))
         return state.terminal_value()
 
     def _backpropagate(self, node: MCTSNode, result: int):
-        """Walk back up the tree, updating each node."""
         while node is not None:
             node.update(result)
             node = node.parent
 
 
-# =============================================================================
-# TEST SUITE
-# =============================================================================
+# Test suite.
 
 def run_tests():
     print("=" * 65)
     print("  GAME SEARCH ALGORITHMS — TEST SUITE")
     print("=" * 65)
 
-    # -------------------------------------------------------------------------
-    # Test 1: Terminal state detection
-    # -------------------------------------------------------------------------
+    # Terminal state detection.
     print("\n[TEST 1] Terminal State Detection")
-    # X wins on top row
     state = TicTacToe([1, 1, 1, -1, -1, 0, 0, 0, 0], turn=-1)
     assert state.is_terminal(), "Should be terminal (X wins)"
     assert state.winner() == 1, "Winner should be X"
     assert state.terminal_value() == 1
-    # Draw
     draw = TicTacToe([1, -1, 1, 1, -1, -1, -1, 1, 1], turn=1)
     assert draw.is_terminal()
     assert draw.winner() == 0
     assert draw.terminal_value() == 0
     print("  ✓ Terminal detection, winner detection, draw detection")
 
-    # -------------------------------------------------------------------------
-    # Test 2: Minimax finds optimal move (should always draw from start)
-    # -------------------------------------------------------------------------
+    # Minimax from the starting board.
     print("\n[TEST 2] Minimax — Optimal Play from Start")
     mm = Minimax()
     t0 = time.perf_counter()
@@ -431,36 +350,22 @@ def run_tests():
     print(f"  ✓ Value={val} (draw), Best move={move}, "
           f"Nodes={mm.nodes_visited}, Time={t1-t0:.3f}s")
 
-    # -------------------------------------------------------------------------
-    # Test 3: Minimax finds only winning move
-    # -------------------------------------------------------------------------
+    # Minimax should find the winning move.
     print("\n[TEST 3] Minimax — Must-Win Position")
-    # X to play, position 8 wins immediately
-    #  X X .
-    #  O O .
-    #  . . .
     state = TicTacToe([1, 1, 0, -1, -1, 0, 0, 0, 0], turn=1)
     val, move = mm.search(state)
     assert move == 2, f"Minimax should play pos 2 to win, got {move}"
     assert val == 1
     print(f"  ✓ Correctly identifies winning move at position {move}")
 
-    # -------------------------------------------------------------------------
-    # Test 4: Minimax — Must-Block Position
-    # -------------------------------------------------------------------------
+    # Minimax should block an immediate threat.
     print("\n[TEST 4] Minimax — Must-Block Position")
-    # O to play, must block X's win at position 2
-    #  X X .
-    #  O . .
-    #  . . .
     state = TicTacToe([1, 1, 0, -1, 0, 0, 0, 0, 0], turn=-1)
     val, move = mm.search(state)
     assert move == 2, f"Minimax must block at pos 2, got {move}"
     print(f"  ✓ Correctly blocks at position {move}")
 
-    # -------------------------------------------------------------------------
-    # Test 5: Alpha-Beta matches Minimax values
-    # -------------------------------------------------------------------------
+    # Alpha-beta should match minimax values.
     print("\n[TEST 5] Alpha-Beta — Value Equivalence with Minimax")
     ab = AlphaBeta()
 
@@ -481,9 +386,7 @@ def run_tests():
               f"MM_nodes={mm2.nodes_visited}, AB_nodes={ab2.nodes_visited}, "
               f"Pruned={ab2.pruned}")
 
-    # -------------------------------------------------------------------------
-    # Test 6: Alpha-Beta prunes more nodes than Minimax
-    # -------------------------------------------------------------------------
+    # Alpha-beta should visit fewer nodes.
     print("\n[TEST 6] Alpha-Beta — Pruning Effectiveness")
     mm3 = Minimax()
     ab3 = AlphaBeta()
@@ -495,9 +398,7 @@ def run_tests():
     print(f"  ✓ MM nodes={mm3.nodes_visited}, AB nodes={ab3.nodes_visited}, "
           f"Reduction={reduction:.1f}%, Pruned={ab3.pruned}")
 
-    # -------------------------------------------------------------------------
-    # Test 7: Heuristic Alpha-Beta — depth limit test
-    # -------------------------------------------------------------------------
+    # Depth-limited heuristic search.
     print("\n[TEST 7] Heuristic Alpha-Beta — Depth-Limited Search")
     for depth in [2, 4, 6]:
         hab = HeuristicAlphaBeta(max_depth=depth)
@@ -505,26 +406,21 @@ def run_tests():
         print(f"  depth={depth}: val={val:.2f}, move={move}, "
               f"nodes={hab.nodes_visited}, heuristic_cutoffs={hab.cutoffs_by_heuristic}")
 
-    # Heuristic AB at full depth should agree with exact Minimax
     hab_full = HeuristicAlphaBeta(max_depth=9)
     val_h, move_h = hab_full.search(TicTacToe())
     assert val_h == 0, f"Heuristic AB at full depth should be 0, got {val_h}"
     print(f"  ✓ Full-depth heuristic AB agrees with Minimax (val={val_h})")
 
-    # -------------------------------------------------------------------------
-    # Test 8: MCTS — convergence test
-    # -------------------------------------------------------------------------
+    # MCTS behaviour on the opening board.
     print("\n[TEST 8] MCTS — Statistical Convergence")
     for iters in [100, 500, 2000]:
         mcts = MCTS(iterations=iters)
         _, move = mcts.search(TicTacToe())
         print(f"  iterations={iters}: best_move={move}")
 
-    # MCTS must-win test (high iterations)
-    #  X X .  — X must play position 2
     state = TicTacToe([1, 1, 0, -1, -1, 0, 0, 0, 0], turn=1)
     correct = 0
-    for _ in range(10):    # run multiple times for statistical reliability
+    for _ in range(10):
         mcts = MCTS(iterations=500)
         _, move = mcts.search(state)
         if move == 2:
@@ -532,9 +428,7 @@ def run_tests():
     print(f"  ✓ MCTS chose winning move (pos=2) in {correct}/10 trials "
           f"({'PASS' if correct >= 8 else 'MARGINAL'})")
 
-    # -------------------------------------------------------------------------
-    # Test 9: Full game simulation — all algorithms play as X vs random O
-    # -------------------------------------------------------------------------
+    # Full game simulation against random play.
     print("\n[TEST 9] Full Game — Each Algorithm as X vs Random O")
     algorithms = {
         "Minimax":           lambda s: Minimax().search(s),
@@ -555,20 +449,21 @@ def run_tests():
         for _ in range(game_counts[name]):
             state = TicTacToe()
             while not state.is_terminal():
-                if state.turn == 1:        # X plays using algorithm
+                if state.turn == 1:
                     _, move = algo(state)
-                else:                      # O plays randomly
+                else:
                     move = random.choice(state.legal_moves())
                 state = state.make_move(move)
             result = state.terminal_value()
-            if result == 1:   wins   += 1
-            elif result == 0: draws  += 1
-            else:             losses += 1
+            if result == 1:
+                wins += 1
+            elif result == 0:
+                draws += 1
+            else:
+                losses += 1
         print(f"  {name:20s}: games={game_counts[name]} W={wins} D={draws} L={losses}")
 
-    # -------------------------------------------------------------------------
-    # Test 10: Algorithm comparison on a mid-game position
-    # -------------------------------------------------------------------------
+    # Mid-game comparison across algorithms.
     print("\n[TEST 10] Mid-Game Position — All Algorithms")
     state = TicTacToe([1, 0, -1, 0, 1, 0, 0, 0, -1], turn=1)
     print(f"\n  Board:\n{_indent(state.display(), '    ')}\n")
@@ -601,7 +496,7 @@ if __name__ == "__main__":
 
         emit_step(
             "Initialise Tic-Tac-Toe",
-            detail="Created an empty board with X as the maximising player.",
+            detail="Created an empty board with X to move first.",
             data={
                 "board": opening_state.board,
                 "turn": "X",

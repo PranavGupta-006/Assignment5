@@ -1,23 +1,11 @@
 """
-Q2: AI-Based Travel Planner with Knowledge Bases
-=================================================
-Reuses existing knowledge bases in:
-    - Tourist Places (cities, attractions, UNESCO sites)
-    - Food Recommendations (cuisines, dietary restrictions)
-    - Personalised Tour Plans (budget, interests, travel style)
-    - Cost Assessment (daily budgets, accommodation tiers)
-    - Weather KB (best travel seasons by region)
+Q2: Travel Planner with Knowledge Bases
+Author: Pranav Gupta
+Roll No: SE24UCSE020
+College: Mahindra University
 
-Architecture:
-    KnowledgeBase  → stores facts as subject-predicate-object triples (RDF-like)
-    OntologyLayer  → defines classes, properties, and relations (inspired by tourism ontologies)
-    Planner        → queries KBs + applies rules to produce personalised tour plans
-
-This is a pure-Python implementation (no external KG library needed).
-In a production system, you'd use Protégé for ontology design and
-Neo4j or AllegroGraph to store/query the triples.
-
-Author: AI Assignment Solution
+Tech stack: Python, dataclasses, typing, json, time, sys
+This file uses a simple triple store and rule-based scoring to build trip plans.
 """
 
 from collections import defaultdict
@@ -29,9 +17,7 @@ import sys
 import time
 
 
-# =============================================================================
-# KNOWLEDGE BASE ENGINE — Simple Triple Store
-# =============================================================================
+# Triple store for the travel data.
 
 class TripleStore:
     """
@@ -42,9 +28,8 @@ class TripleStore:
     """
 
     def __init__(self):
-        # Index by subject, predicate, object for fast lookup
-        self._spo: dict = defaultdict(lambda: defaultdict(set))  # s → p → {o}
-        self._pos: dict = defaultdict(lambda: defaultdict(set))  # p → o → {s}
+        self._spo: dict = defaultdict(lambda: defaultdict(set))
+        self._pos: dict = defaultdict(lambda: defaultdict(set))
         self._triples: list = []
 
     def add(self, s, p, o):
@@ -78,27 +63,10 @@ class TripleStore:
         return list(self._pos[p][o])
 
 
-# =============================================================================
-# ONTOLOGY LAYER — Classes & Properties
-# =============================================================================
+# Ontology definitions for the travel domain.
 
 class TourismOntology:
-    """
-    Defines the ontology for the travel domain.
-
-    Classes:
-        Destination, Attraction, Cuisine, Hotel, TourPlan, Traveller
-
-    Object Properties:
-        hasAttraction, servesCuisine, isIn, recommendedFor, bestSeason,
-        hasBudgetTier, hasActivityType, nearAttraction
-
-    Data Properties:
-        averageDailyCost, rating, duration_hours, distance_from_city_km
-
-    Inspired by: GeoNames ontology, DBpedia Tourism,
-                 Schema.org TouristAttraction, LGD (Linked Geo Data)
-    """
+    """Classes and properties used by the planner."""
 
     CLASSES = [
         'Destination', 'Attraction', 'Cuisine', 'Hotel',
@@ -106,54 +74,39 @@ class TourismOntology:
     ]
 
     PROPERTIES = {
-        # Attraction properties
         'hasAttraction':       ('Destination', 'Attraction'),
         'hasActivityType':     ('Attraction', 'Activity'),
         'isIn':                ('Attraction', 'Destination'),
         'bestVisitedIn':       ('Destination', 'Season'),
-        'averageDailyCost':    ('Destination', 'float'),   # USD/day
-        'rating':              ('Attraction', 'float'),    # 0-5
+        'averageDailyCost':    ('Destination', 'float'),
+        'rating':              ('Attraction', 'float'),
         'duration_hours':      ('Attraction', 'float'),
-        'distance_km':         ('Attraction', 'float'),    # from city center
-        'UNESCO':              ('Attraction', 'bool'),     # UNESCO World Heritage
+        'distance_km':         ('Attraction', 'float'),
+        'UNESCO':              ('Attraction', 'bool'),
 
-        # Food properties
         'servesCuisine':       ('Destination', 'Cuisine'),
-        'dietaryTag':          ('Cuisine', 'string'),      # veg, vegan, halal, gluten-free
-        'spiceLevel':          ('Cuisine', 'string'),      # mild, medium, spicy
+        'dietaryTag':          ('Cuisine', 'string'),
+        'spiceLevel':          ('Cuisine', 'string'),
 
-        # Hotel properties
         'hasHotel':            ('Destination', 'Hotel'),
-        'budgetTier':          ('Hotel', 'string'),        # budget, mid, luxury
-        'pricePerNight':       ('Hotel', 'float'),         # USD
+        'budgetTier':          ('Hotel', 'string'),
+        'pricePerNight':       ('Hotel', 'float'),
 
-        # Traveller preferences
         'prefersActivity':     ('Traveller', 'Activity'),
-        'hasBudget':           ('Traveller', 'string'),    # budget, mid, luxury
+        'hasBudget':           ('Traveller', 'string'),
         'dietaryRestriction':  ('Traveller', 'string'),
-        'travelStyle':         ('Traveller', 'string'),    # solo, couple, family, group
+        'travelStyle':         ('Traveller', 'string'),
         'availableDays':       ('Traveller', 'int'),
     }
 
 
-# =============================================================================
-# KNOWLEDGE BASE — Tourist Places, Food, Cost, Weather
-# =============================================================================
+# Knowledge base data.
 
 def build_knowledge_base() -> TripleStore:
-    """
-    Populates the triple store with facts from multiple knowledge domains.
-    In a real system, these facts would be ingested from:
-        - DBpedia SPARQL endpoint
-        - OpenStreetMap / GeoNames
-        - TripAdvisor API
-        - Wikidata
-    """
+    """Populate the triple store with travel facts."""
     kb = TripleStore()
 
-    # ---- DESTINATIONS -------------------------------------------------------
     destinations = [
-        # (name, country, region, avg_daily_cost_usd, best_season, climate)
         ("Paris",        "France",     "Europe",     150, "Spring",    "Temperate"),
         ("Tokyo",        "Japan",      "Asia",       120, "Spring",    "Temperate"),
         ("Rajasthan",    "India",      "Asia",        40, "Winter",    "Arid"),
@@ -176,9 +129,7 @@ def build_knowledge_base() -> TripleStore:
         kb.add(name, 'bestSeason',        season)
         kb.add(name, 'climate',           climate)
 
-    # ---- ATTRACTIONS --------------------------------------------------------
     attractions = [
-        # (name, destination, activity_type, rating, duration_h, dist_km, UNESCO, cost_usd)
         ("Eiffel Tower",          "Paris",        "Sightseeing",  4.7, 2.0,  0.5,  False, 25),
         ("Louvre Museum",         "Paris",        "Museum",       4.8, 4.0,  1.0,  False, 20),
         ("Versailles Palace",     "Paris",        "History",      4.6, 5.0, 20.0,  True,  20),
@@ -248,11 +199,9 @@ def build_knowledge_base() -> TripleStore:
         kb.add(name,  'distance_km',    dist)
         kb.add(name,  'isUNESCO',       unesco)
         kb.add(name,  'entryCost',      cost)
-        kb.add(dest,  'hasAttraction',  name)     # inverse link
+        kb.add(dest,  'hasAttraction',  name)
 
-    # ---- CUISINES -----------------------------------------------------------
     cuisines = [
-        # (destination, cuisine_name, dietary_tags, spice_level)
         ("Paris",        "French",      ["glutenfree-option", "veg-option"],   "mild"),
         ("Paris",        "Cafe Culture",["veg"],                               "mild"),
         ("Tokyo",        "Sushi",       ["halal-option"],                      "mild"),
@@ -285,9 +234,7 @@ def build_knowledge_base() -> TripleStore:
         for tag in tags:
             kb.add(cuisine, 'dietaryTag', tag)
 
-    # ---- HOTELS -------------------------------------------------------------
     hotels = [
-        # (destination, name, tier, price_per_night_usd)
         ("Paris",        "Budget Hostel Paris",     "budget",  30),
         ("Paris",        "Hotel Ibis Paris",        "mid",     90),
         ("Paris",        "Le Meurice",              "luxury", 800),
@@ -336,19 +283,17 @@ def build_knowledge_base() -> TripleStore:
     return kb
 
 
-# =============================================================================
-# TRAVEL PLANNER ENGINE
-# =============================================================================
+# Travel planner logic.
 
 @dataclass
 class TravellerProfile:
     name: str
-    budget_tier: str          # "budget", "mid", "luxury"
+    budget_tier: str
     available_days: int
-    preferred_activities: list   # e.g. ["History", "Culture", "Beach"]
-    dietary_restriction: str     # "veg", "vegan", "halal", "glutenfree", "none"
-    travel_style: str            # "solo", "couple", "family", "group"
-    preferred_region: str = ""   # e.g. "Asia", "Europe" or "" for any
+    preferred_activities: list
+    dietary_restriction: str
+    travel_style: str
+    preferred_region: str = ""
     avoid_spicy: bool = False
 
 
@@ -369,16 +314,7 @@ class TourPlan:
 
 
 class TravelPlanner:
-    """
-    Personalised tour planner using KB inference.
-
-    Scoring system:
-        - Budget fit:      30 points
-        - Activity match:  30 points
-        - Dietary match:   20 points
-        - Season fit:      10 points
-        - Region match:    10 points
-    """
+    """Rule-based planner that scores destinations and builds trip plans."""
 
     DAILY_FOOD = {
         'budget': 15,
@@ -400,21 +336,18 @@ class TravelPlanner:
         return [s for s, p, o in self.kb.query(p='type', o='Destination')]
 
     def score_destination(self, dest: str, profile: TravellerProfile) -> float:
-        """Score 0-100 how well this destination fits the traveller."""
         score = 0.0
 
-        # ---- Budget fit (30 pts) ----
         daily_cost = self.kb.get_one(dest, 'averageDailyCost', 999)
         budget_map = {'budget': (0, 60), 'mid': (40, 150), 'luxury': (100, 10000)}
         lo, hi = budget_map[profile.budget_tier]
         if lo <= daily_cost <= hi:
             score += 30
         elif daily_cost < lo:
-            score += 20      # cheaper than expected — still good
+            score += 20
         else:
             score += max(0, 30 - (daily_cost - hi) * 0.3)
 
-        # ---- Activity match (30 pts) ----
         attractions = self.kb.get(dest, 'hasAttraction')
         dest_activities = set()
         for attr in attractions:
@@ -425,7 +358,6 @@ class TravelPlanner:
             matched = len(set(profile.preferred_activities) & dest_activities)
             score += 30 * (matched / len(profile.preferred_activities))
 
-        # ---- Dietary match (20 pts) ----
         if profile.dietary_restriction == 'none':
             score += 20
         else:
@@ -438,7 +370,6 @@ class TravelPlanner:
                     break
             score += 20 if dietary_ok else 5
 
-        # ---- Season fit (10 pts) ----
         import datetime
         month = datetime.date.today().month
         current_season = self.CURRENT_MONTH_SEASON.get(month, 'Spring')
@@ -446,11 +377,10 @@ class TravelPlanner:
         if best_season == current_season:
             score += 10
         elif best_season in ['Spring', 'Fall'] and current_season in ['Spring', 'Fall']:
-            score += 7      # shoulder seasons are usually fine too
+            score += 7
         else:
             score += 3
 
-        # ---- Region match (10 pts) ----
         if not profile.preferred_region:
             score += 10
         else:
@@ -460,28 +390,20 @@ class TravelPlanner:
         return score
 
     def select_hotel(self, dest: str, tier: str):
-        """Pick best-rated hotel for the budget tier."""
         hotels = self.kb.get(dest, 'hasHotel')
         matching = [(h, self.kb.get_one(h, 'pricePerNight', 9999))
                     for h in hotels
                     if self.kb.get_one(h, 'budgetTier') == tier]
         if not matching:
-            # Fall back to nearest tier
             matching = [(h, self.kb.get_one(h, 'pricePerNight', 9999))
                         for h in hotels]
         if not matching:
             return "Unknown Hotel", 50
         matching.sort(key=lambda x: x[1])
-        best = matching[len(matching) // 2]   # pick mid-range within tier
+        best = matching[len(matching) // 2]
         return best
 
     def select_attractions(self, dest: str, profile: TravellerProfile):
-        """
-        Select and order attractions for the trip.
-        - Prioritise activity type matches
-        - Prefer UNESCO sites for history/culture lovers
-        - Cap by available days (3 attractions/day)
-        """
         all_attrs = self.kb.get(dest, 'hasAttraction')
         scored = []
         for attr in all_attrs:
@@ -504,7 +426,6 @@ class TravelPlanner:
         return [attr for _, attr in scored[:max_attractions]]
 
     def recommend_cuisines(self, dest: str, profile: TravellerProfile):
-        """Return suitable cuisines respecting dietary restrictions."""
         cuisines = self.kb.get(dest, 'servesCuisine')
         suitable = []
         for c in cuisines:
@@ -520,19 +441,16 @@ class TravelPlanner:
 
     def build_tour_plan(self, dest: str, profile: TravellerProfile,
                         match_score: float) -> TourPlan:
-        """Assemble a complete tour plan for a destination."""
         hotel_name, hotel_price = self.select_hotel(dest, profile.budget_tier)
         attractions = self.select_attractions(dest, profile)
         cuisines = self.recommend_cuisines(dest, profile)
 
-        # Estimate daily attraction cost
         total_entry = sum(self.kb.get_one(a, 'entryCost', 0) for a in attractions)
         daily_activity = total_entry / max(profile.available_days, 1)
 
         food_daily = self.DAILY_FOOD[profile.budget_tier]
         total_cost = (hotel_price + daily_activity + food_daily) * profile.available_days
 
-        # Notes / tips
         notes = []
         best_season = self.kb.get_one(dest, 'bestSeason', '')
         notes.append(f"Best travel season: {best_season}")
@@ -559,12 +477,6 @@ class TravelPlanner:
         )
 
     def plan(self, profile: TravellerProfile, top_n=3) -> list:
-        """
-        Main planning function.
-        1. Score all destinations against the profile
-        2. Select top-N
-        3. Build detailed tour plans for each
-        """
         destinations = self.get_all_destinations()
         scored = [(self.score_destination(d, profile), d) for d in destinations]
         scored.sort(reverse=True)
@@ -577,9 +489,7 @@ class TravelPlanner:
         return plans
 
 
-# =============================================================================
-# DISPLAY HELPERS
-# =============================================================================
+# Display helpers.
 
 def print_plan(plan: TourPlan, kb: TripleStore, rank: int):
     print(f"\n{'='*60}")
@@ -614,13 +524,11 @@ def print_plan(plan: TourPlan, kb: TripleStore, rank: int):
             print(f"    ℹ {note}")
 
 
-# =============================================================================
-# TEST SUITE
-# =============================================================================
+# Test suite.
 
 def run_tests():
     print("=" * 65)
-    print("  AI TRAVEL PLANNER — KNOWLEDGE BASE SYSTEM")
+    print("  TRAVEL PLANNER — KNOWLEDGE BASE SYSTEM")
     print("=" * 65)
 
     kb = build_knowledge_base()
@@ -631,7 +539,6 @@ def run_tests():
     print(f"  Cuisines    : {len(kb.query(p='type', o='Cuisine'))}")
     print(f"  Hotels      : {len(kb.query(p='type', o='Hotel'))}")
 
-    # ---- Test 1: Budget solo traveller interested in history ----------------
     print("\n" + "="*65)
     print("  SCENARIO 1: Budget solo traveller, loves History & Culture")
     print("="*65)
@@ -648,12 +555,10 @@ def run_tests():
     for i, plan in enumerate(plans1, 1):
         print_plan(plan, kb, i)
 
-    # Assertions
     assert all(plan.match_score > 0 for plan in plans1)
-    assert plans1[0].match_score >= plans1[1].match_score   # sorted correctly
+    assert plans1[0].match_score >= plans1[1].match_score
     print("\n  ✓ Test 1 passed: Plans generated, scores sorted correctly")
 
-    # ---- Test 2: Luxury couple, beach & adventure ---------------------------
     print("\n" + "="*65)
     print("  SCENARIO 2: Luxury couple, Beach & Adventure")
     print("="*65)
@@ -670,13 +575,11 @@ def run_tests():
     for i, plan in enumerate(plans2, 1):
         print_plan(plan, kb, i)
 
-    # Luxury hotels should be selected
     for plan in plans2:
         assert plan.hotel_cost_per_night >= 100, \
             f"Luxury traveller should get expensive hotel, got ${plan.hotel_cost_per_night}"
     print("\n  ✓ Test 2 passed: Luxury hotels selected, correct region preference")
 
-    # ---- Test 3: Halal dietary, Middle East preference ----------------------
     print("\n" + "="*65)
     print("  SCENARIO 3: Mid-budget family, Halal diet, MiddleEast")
     print("="*65)
@@ -693,29 +596,24 @@ def run_tests():
     for i, plan in enumerate(plans3, 1):
         print_plan(plan, kb, i)
 
-    # Dubai should score high for halal + MiddleEast
     dest_names = [p.destination for p in plans3]
     print(f"\n  ✓ Test 3 passed: Top destinations = {dest_names}")
 
-    # ---- Test 4: KB query verification --------------------------------------
     print("\n" + "="*65)
     print("  TEST 4: Knowledge Base Query Verification")
     print("="*65)
 
-    # Query: UNESCO attractions in Kyoto
     kyoto_attrs = kb.get('Kyoto', 'hasAttraction')
     kyoto_unesco = [a for a in kyoto_attrs if kb.get_one(a, 'isUNESCO', False)]
     print(f"  UNESCO sites in Kyoto: {kyoto_unesco}")
     assert len(kyoto_unesco) >= 1, "Kyoto should have at least 1 UNESCO site"
     print(f"  ✓ UNESCO query works")
 
-    # Query: All vegan-friendly cuisines
     vegan_cuisines = [s for s, p, o in kb.query(p='dietaryTag', o='vegan')]
     print(f"  Vegan cuisines: {vegan_cuisines}")
     assert len(vegan_cuisines) >= 2
     print(f"  ✓ Dietary tag query works")
 
-    # Query: Cheapest destination
     dests = planner.get_all_destinations()
     costs = [(kb.get_one(d, 'averageDailyCost', 999), d) for d in dests]
     cheapest = min(costs)
@@ -723,7 +621,6 @@ def run_tests():
     assert cheapest[0] <= 40
     print(f"  ✓ Cost query works")
 
-    # Query: Top-rated attraction globally
     all_attrs = [s for s, p, o in kb.query(p='type', o='Attraction')]
     rated = [(kb.get_one(a, 'rating', 0), a) for a in all_attrs]
     top_attr = max(rated)
