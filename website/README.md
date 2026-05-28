@@ -1,6 +1,6 @@
 # Assignment Visual Dashboard
 
-This Vite app runs the three assignment Python scripts through a local dev-server API and renders their streamed JSON output as visual cards.
+This Vite app runs the four assignment Python scripts through a local dev-server API and renders their streamed JSON output as visual cards.
 
 ## Commands
 
@@ -18,6 +18,7 @@ The API is implemented in `vite.config.js`.
 - `GET /api/run/q1`: streams `q1_game_search.py --steps`.
 - `GET /api/run/q2`: streams `q2_travel_planner.py --steps`.
 - `GET /api/run/q3`: streams `q3_bayesian_networks.py --steps`.
+- `GET /api/run/q4`: streams `q4_knowledge_base.py --steps`.
 
 Each Python script emits newline-delimited JSON. The frontend parses each line and chooses a visualization from the payload keys.
 
@@ -29,3 +30,4 @@ Each Python script emits newline-delimited JSON. The frontend parses each line a
 - Destination ranking and cost cards for the travel planner.
 - Knowledge graph sample diagram and KG tool catalog.
 - Bayesian Network DAG, probability grids, inference comparison table, and MAP explanation.
+- Knowledge graph snapshot, centrality notes, and shortest-path summaries.

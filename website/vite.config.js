@@ -20,6 +20,10 @@ const scriptMap = {
     file: 'q3_bayesian_networks.py',
     title: 'Q3 Bayesian Networks',
   },
+  q4: {
+    file: 'q4_knowledge_base.py',
+    title: 'Q4 Knowledge Base',
+  },
 }
 
 function scriptApiPlugin() {

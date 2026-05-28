@@ -19,6 +19,12 @@ const scripts = [
     file: 'q3_bayesian_networks.py',
     summary: 'Asia network construction, exact inference, and MAP explanation.',
   },
+  {
+    id: 'q4',
+    title: 'Q4 Knowledge Base',
+    file: 'q4_knowledge_base.py',
+    summary: 'Knowledge graph construction, connectivity analysis, and graph exports.',
+  },
 ]
 
 const statusStyles = {
@@ -127,7 +133,7 @@ function App() {
               Script control panel
             </h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Run Q1, Q2, or Q3 on demand and watch each Python step stream back through the local Vite API.
+              Run Q1, Q2, Q3, or Q4 on demand and watch each Python step stream back through the local Vite API.
             </p>
           </div>
 

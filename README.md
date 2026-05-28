@@ -3,13 +3,14 @@
 Submitted by: **Pranav Gupta**  
 Roll No: **SE24UCSE020**
 
-This project contains three AI assignment implementations plus a React frontend that runs them and visualizes the output.
+This project contains four AI assignment implementations plus a React frontend that runs them and visualizes the output.
 
 ## What Is Included
 
 - `q1_game_search.py`: Tic-Tac-Toe AI with Minimax, Alpha-Beta pruning, depth-limited heuristic Alpha-Beta, and Monte-Carlo Tree Search.
 - `q2_travel_planner.py`: AI travel planner using a small RDF-style triple store for destinations, attractions, cuisines, hotels, budget, seasons, and rules.
 - `q3_bayesian_networks.py`: Bayesian Network example using the Asia chest-clinic network with `pgmpy`, exact inference, and MAP explanation.
+- `q4_knowledge_base.py`: Knowledge-base graph example using `networkx`, `matplotlib`, `pyvis`, and `pandas`.
 - `website/`: React + Vite frontend that streams each Python script through a local API and shows modern visual cards.
 - `.gitignore`: protects local junk, caches, build output, virtual environments, secrets, and OS/editor files.
 
@@ -26,6 +27,7 @@ The Vite frontend defines a small local API in `website/vite.config.js`.
 - `GET /api/run/q1`: runs `python3 q1_game_search.py --steps`.
 - `GET /api/run/q2`: runs `python3 q2_travel_planner.py --steps`.
 - `GET /api/run/q3`: runs `python3 q3_bayesian_networks.py --steps`.
+- `GET /api/run/q4`: runs `python3 q4_knowledge_base.py --steps`.
 
 The React app reads that streamed output and renders boards, graphs, rankings, probabilities, and summary cards.
 
@@ -37,10 +39,14 @@ Install these first:
 - Node.js 20 or newer
 - npm, included with Node.js
 
-Python package needed for Q3:
+Python packages needed for Q3 and Q4:
 
 - `pgmpy`
 - `numpy`
+- `networkx`
+- `matplotlib`
+- `pyvis`
+- `pandas`
 
 Q1 and Q2 use only the Python standard library.
 
@@ -135,6 +141,7 @@ From the project root:
 python q1_game_search.py
 python q2_travel_planner.py
 python q3_bayesian_networks.py
+python q4_knowledge_base.py
 ```
 
 On some systems, use `python3` instead of `python`.
@@ -144,6 +151,7 @@ Expected coverage:
 - Q1 tests terminal states, optimal Minimax, blocking/winning moves, Alpha-Beta equivalence, pruning, heuristic depth limits, MCTS convergence, and algorithm comparison.
 - Q2 tests destination scoring, hotel selection, dietary rules, UNESCO queries, vegan cuisine queries, cost queries, and top attraction queries.
 - Q3 tests model validation, prior marginals, posterior inference, explaining away, d-separation behaviour, Variable Elimination versus Belief Propagation, and MAP inference.
+- Q4 prints graph stats, centrality measures, shortest paths, and writes static plus interactive graph exports.
 
 ## Run The Frontend
 
@@ -230,4 +238,3 @@ Visualization and personal KGs:
 - Netica: commercial Bayesian Network and decision network tooling.
 - `bnlearn`: R package for learning and inference.
 - Bayes Server: industrial Bayesian Network tooling and APIs.
-

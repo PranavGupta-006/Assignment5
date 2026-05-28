@@ -31,6 +31,16 @@ const scripts = [
     tint: 'bg-[#FFF0F1]',
     summary: 'Asia chest-clinic network with CPDs, exact inference, and MAP explanation.',
   },
+  {
+    id: 'q4',
+    title: 'Knowledge Base',
+    label: 'Q4',
+    file: 'q4_knowledge_base.py',
+    color: 'bg-[#6D28D9]',
+    text: 'text-[#4C1D95]',
+    tint: 'bg-[#F3E8FF]',
+    summary: 'An Indian tech ecosystem knowledge graph with centrality, paths, and graph exports.',
+  },
 ]
 
 const statusCopy = {
@@ -143,7 +153,7 @@ function App2() {
                 AI Methods, Visualized
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-                A clean runner for search algorithms, a knowledge-graph travel planner, and Bayesian-network inference.
+                A clean runner for search algorithms, a knowledge-graph travel planner, Bayesian-network inference, and knowledge-base graph analysis.
               </p>
             </div>
 
@@ -154,7 +164,7 @@ function App2() {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
             {scripts.map((script) => (
               <ModuleButton
                 key={script.id}
